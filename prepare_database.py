@@ -2,10 +2,9 @@
 # encoding: utf-8
 
 import pymysql as mdb
+from config import DB_HOST, DB_USER, DB_PASS
 
-DB_HOST = '127.0.0.1'
-DB_USER = 'root'
-DB_PASS = 'jialin,0204'
+create_database_ssbc = 'create database if not exists ssbc;'
 
 create_table_search_filelist = '''
 create table if not exists search_filelist
@@ -46,13 +45,13 @@ create table if not exists search_statusreport
 )
 '''
 
-print create_table_search_filelist
-
 dbconn = mdb.connect(DB_HOST, DB_USER, DB_PASS, 'ssbc', charset='utf8')
 dbconn.autocommit(False)
 dbcurr = dbconn.cursor()
 dbcurr.execute('SET NAMES utf8')
 
+dbcurr.execute(create_database_ssbc)
+dbconn.commit()
 dbcurr.execute(create_table_search_filelist)
 dbconn.commit()
 dbcurr.execute(create_table_search_hash)
