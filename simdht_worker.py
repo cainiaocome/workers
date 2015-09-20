@@ -24,7 +24,7 @@ from time import sleep
 from collections import deque
 from Queue import Queue
 
-import MySQLdb as mdb
+import pymysql as mdb
 try:
     raise
     import libtorrent as lt
@@ -38,7 +38,7 @@ from bencode import bencode, bdecode
 
 DB_HOST = '127.0.0.1'
 DB_USER = 'root'
-DB_PASS = ''
+DB_PASS = 'jialin,0204'
 BOOTSTRAP_NODES = (
     ("router.bittorrent.com", 6881),
     ("dht.transmissionbt.com", 6881),

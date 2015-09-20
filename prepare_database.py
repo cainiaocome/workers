@@ -21,7 +21,7 @@ create table if not exists search_hash
     id int unsigned AUTO_INCREMENT,
     info_hash varchar(40) unique,
     category varchar(20),
-    date_hash varchar(32),
+    data_hash varchar(32),
     name varchar(255),
     extension varchar(20),
     classified boolean default 0,
