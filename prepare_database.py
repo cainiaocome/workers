@@ -4,7 +4,7 @@
 import pymysql as mdb
 from config import DB_HOST, DB_USER, DB_PASS
 
-create_database_ssbc = 'create database if not exists ssbc;'
+#create_database_ssbc = 'create database if not exists ssbc;'  :(
 
 create_table_search_filelist = '''
 create table if not exists search_filelist
@@ -50,8 +50,6 @@ dbconn.autocommit(False)
 dbcurr = dbconn.cursor()
 dbcurr.execute('SET NAMES utf8')
 
-dbcurr.execute(create_database_ssbc)
-dbconn.commit()
 dbcurr.execute(create_table_search_filelist)
 dbconn.commit()
 dbcurr.execute(create_table_search_hash)
