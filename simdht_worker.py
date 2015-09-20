@@ -24,7 +24,7 @@ from time import sleep
 from collections import deque
 from Queue import Queue
 
-import pymysql as mdb
+import MySQLdb as mdb
 try:
     raise
     import libtorrent as lt
@@ -38,7 +38,7 @@ from bencode import bencode, bdecode
 
 DB_HOST = '127.0.0.1'
 DB_USER = 'root'
-DB_PASS = 'jialin,0204'
+DB_PASS = ''
 BOOTSTRAP_NODES = (
     ("router.bittorrent.com", 6881),
     ("dht.transmissionbt.com", 6881),
@@ -318,7 +318,6 @@ class Master(Thread):
         if 'files' in info:
             try:
                 self.dbcurr.execute('INSERT INTO search_filelist VALUES(%s, %s)', (info['info_hash'], json.dumps(info['files'])))
-                print('INSERT INTO search_filelist VALUES(%s, %s)' % (info['info_hash'], json.dumps(info['files'])))
             except:
                 print self.name, 'insert error', sys.exc_info()[1]
             del info['files']
@@ -328,8 +327,11 @@ class Master(Thread):
                 print '\n', 'Saved', info['info_hash'], dtype, info['name'], (time.time()-start_time), 's', address[0],
             except:
                 print '\n', 'Saved', info['info_hash'],
-            ret = self.dbcurr.execute('INSERT INTO search_hash(info_hash,category,data_hash,name,extension,classified,source_ip,tagged,length,create_time,last_seen,requests,comment,creator) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(info['info_hash'], info['category'], info['data_hash'], info['name'], info['extension'], info['classified'],info['source_ip'], info['tagged'], info['length'], info['create_time'], info['last_seen'], info['requests'],info.get('comment',''), info.get('creator','')))
-            print('INSERT INTO search_hash(info_hash,category,data_hash,name,extension,classified,source_ip,tagged,length,create_time,last_seen,requests,comment,creator) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)' % (info['info_hash'], info['category'], info['data_hash'], info['name'], info['extension'], info['classified'],info['source_ip'], info['tagged'], info['length'], info['create_time'], info['last_seen'], info['requests'],info.get('comment',''), info.get('creator','')))
+            ret = self.dbcurr.execute('INSERT INTO search_hash(info_hash,category,data_hash,name,extension,classified,source_ip,tagged,' + 
+                'length,create_time,last_seen,requests,comment,creator) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+                (info['info_hash'], info['category'], info['data_hash'], info['name'], info['extension'], info['classified'],
+                info['source_ip'], info['tagged'], info['length'], info['create_time'], info['last_seen'], info['requests'],
+                info.get('comment',''), info.get('creator','')))
             self.dbconn.commit()
         except:
             print self.name, 'save error', self.name, info
@@ -378,7 +380,9 @@ class Master(Thread):
                     self.n_downloading_lt += 1
 
             if self.n_reqs >= 1000:
-                self.dbcurr.execute('INSERT INTO search_statusreport(date,new_hashes,total_requests, valid_requests)  VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE total_requests=total_requests+%s, valid_requests=valid_requests+%s, new_hashes=new_hashes+%s' % (date, self.n_new, self.n_reqs, self.n_valid, self.n_reqs, self.n_valid, self.n_new))
+                self.dbcurr.execute('INSERT INTO search_statusreport(date,new_hashes,total_requests, valid_requests)  VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE ' +
+                    'total_requests=total_requests+%s, valid_requests=valid_requests+%s, new_hashes=new_hashes+%s',
+                    (date, self.n_new, self.n_reqs, self.n_valid, self.n_reqs, self.n_valid, self.n_new))
                 self.dbconn.commit()
                 print '\n', time.ctime(), 'n_reqs', self.n_reqs, 'n_valid', self.n_valid, 'n_new', self.n_new, 'n_queue', self.queue.qsize(), 
                 print 'n_d_pt', self.n_downloading_pt, 'n_d_lt', self.n_downloading_lt,
@@ -470,3 +474,5 @@ if __name__ == "__main__":
     dht = DHTServer(master, "0.0.0.0", 6881, max_node_qsize=200)
     dht.start()
     dht.auto_send_find_node()
+
+
