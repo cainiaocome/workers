@@ -26,11 +26,11 @@ dbcurr.execute('SET NAMES utf8')
 row_number = dbcurr.execute('select id,name from search_hash')
 while row_number>0:
     row = dbcurr.fetchone()
+    row_number = row_number - 1
     writer = ix.writer()
     writer.add_document(id=row[0], name=row[1])
     writer.commit()
     print row[0],row[1]
-    row_number = row_number - 1
 
 dbcurr.close()
 dbconn.close()

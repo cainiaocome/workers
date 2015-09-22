@@ -293,7 +293,8 @@ class Master(Thread):
             if not info:
                 return
         except:
-            traceback.print_exc()
+            t,v = sys.exc_info()
+            print t.v
             return
         info_hash = binhash.encode('hex')
         info['info_hash'] = info_hash
@@ -335,14 +336,15 @@ class Master(Thread):
             self.dbconn.commit()
         except:
             print self.name, 'save error', self.name, info
-            traceback.print_exc()
+            t,v = sys.exc_info()
+            print t,v
             return
         self.n_new += 1
 
 
     def run(self):
         self.name = threading.currentThread().getName()
-        print self.name, 'started'
+        print self.name, 'started' # Thread-1
         while True:
             while self.metadata_queue.qsize() > 0:
                 self.got_torrent()
@@ -350,7 +352,7 @@ class Master(Thread):
             if binhash in self.visited:
                 continue
             if len(self.visited) > 100000:
-                self.visited = set()
+                self.visited = set()  # -_-;
             self.visited.add(binhash)
 
             self.n_reqs += 1
@@ -368,7 +370,7 @@ class Master(Thread):
                 # 更新最近发现时间，请求数
                 self.dbcurr.execute('UPDATE search_hash SET last_seen=%s, requests=requests+1 WHERE info_hash=%s', (utcnow, info_hash))
             else:
-                if dtype == 'pt':
+                if dtype == 'pt' and self.n_downloading_pt < MAX_QUEUE_PT:
                     t = threading.Thread(target=simMetadata.download_metadata, args=(address, binhash, self.metadata_queue))
                     t.setDaemon(True)
                     t.start()
@@ -474,5 +476,3 @@ if __name__ == "__main__":
     dht = DHTServer(master, "0.0.0.0", 6881, max_node_qsize=200)
     dht.start()
     dht.auto_send_find_node()
-
-
