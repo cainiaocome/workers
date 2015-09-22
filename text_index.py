@@ -15,9 +15,9 @@ from config import DB_HOST, DB_USER, DB_PASS
 #用中文分词器代替原先的正则表达式解释器。
 analyzer=ChineseAnalyzer()
 schema = Schema(id=NUMERIC(stored=True), name=TEXT(stored=True, analyzer=analyzer))
-if not os.path.exists("/tmp/indexdir"):
-    os.mkdir("/tmp/indexdir")
-ix = create_in("/tmp/indexdir", schema)
+if not os.path.exists("/var/indexdir"):
+    os.mkdir("/var/indexdir")
+ix = create_in("/var/indexdir", schema)
 dbconn = mdb.connect(DB_HOST, DB_USER, DB_PASS, 'ssbc', charset='utf8')
 dbconn.autocommit(False)
 dbcurr = dbconn.cursor()
