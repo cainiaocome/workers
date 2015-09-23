@@ -358,7 +358,8 @@ class Master(Thread):
             #logging.debug('queue size {}'.format(self.queue.qsize()))
             if binhash in self.visited:
                 continue
-            if len(self.visited) > 100000:
+            #if len(self.visited) > 100000:
+            if len(self.visited) > 10000:
                 self.visited = set()  # -_-;
             self.visited.add(binhash)
 
@@ -374,7 +375,6 @@ class Master(Thread):
             y = self.dbcurr.fetchone()
             if y:
                 self.n_valid += 1
-                logging.debug(self.n_valid)
                 # 更新最近发现时间，请求数
                 self.dbcurr.execute('UPDATE search_hash SET last_seen=%s, requests=requests+1 WHERE info_hash=%s', (utcnow, info_hash))
             else:
