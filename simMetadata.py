@@ -137,8 +137,8 @@ def download_metadata(address, infohash, metadata_queue, timeout=5):
     #    logging.debug('timeout {}'.format(address))
     except:
         t,v,_ = sys.exc_info()
-        logging.debug('address:{} infohash:{}'.format(address, infohash.encode('hex')))
-        logging.debug('Except t:{} v:{}'.format(t,v))
+        #logging.debug('address:{} infohash:{}'.format(address, infohash.encode('hex')))
+        #logging.debug('Except t:{} v:{}'.format(t,v))
 
     finally:
         the_socket.close()
