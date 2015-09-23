@@ -355,7 +355,7 @@ class Master(Thread):
             while self.metadata_queue.qsize() > 0:
                 self.got_torrent()
             address, binhash, dtype = self.queue.get()  # block if queue is empty
-            logging.debug('queue size {}'.format(self.queue.qsize()))
+            #logging.debug('queue size {}'.format(self.queue.qsize()))
             if binhash in self.visited:
                 continue
             if len(self.visited) > 100000:
@@ -473,9 +473,9 @@ class Master(Thread):
 
 
     def log_announce(self, binhash, address=None):
-        logging.debug('pt {} {}'.format(address, binhash.encode('hex')))
+        #logging.debug('pt {} {}'.format(address, binhash.encode('hex')))
         self.queue.put([address, binhash, 'pt'])
-        logging.debug('queue size {}'.format(self.queue.qsize()))
+        #logging.debug('queue size {}'.format(self.queue.qsize()))
 
     def log_hash(self, binhash, address=None):
         if not lt:
