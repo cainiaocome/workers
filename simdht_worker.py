@@ -23,6 +23,8 @@ from threading import Timer, Thread
 from time import sleep
 from collections import deque
 from Queue import Queue
+import logging
+import config
 
 import pymysql as mdb
 try:
@@ -36,9 +38,12 @@ import metautils
 import simMetadata
 from bencode import bencode, bdecode
 
-DB_HOST = '127.0.0.1'
-DB_USER = 'root'
-DB_PASS = 'jialin,0204'
+from config import DB_HOST,DB_USER,DB_PASS
+
+logging.basicConfig(level=config.log_level,
+                    format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+                    datefmt='%a, %d %b %Y %H:%M:%S')
+
 BOOTSTRAP_NODES = (
     ("router.bittorrent.com", 6881),
     ("dht.transmissionbt.com", 6881),
@@ -137,11 +142,12 @@ class DHTClient(Thread):
                 node = self.nodes.popleft()
                 self.send_find_node((node.ip, node.port), node.nid)
             except IndexError:
+                t,v,_ = sys.exc_info()
                 pass
             try:
                 sleep(wait)
             except KeyboardInterrupt:
-                os._exit(0)
+                sys.exit(0)
 
     def process_find_node_response(self, msg, address):
         nodes = decode_nodes(msg["r"]["nodes"])
@@ -293,7 +299,7 @@ class Master(Thread):
             if not info:
                 return
         except:
-            t,v = sys.exc_info()
+            t,v,_ = sys.exc_info()
             print t.v
             return
         info_hash = binhash.encode('hex')
@@ -336,7 +342,7 @@ class Master(Thread):
             self.dbconn.commit()
         except:
             print self.name, 'save error', self.name, info
-            t,v = sys.exc_info()
+            t,v,_ = sys.exc_info()
             print t,v
             return
         self.n_new += 1
@@ -348,7 +354,7 @@ class Master(Thread):
         while True:
             while self.metadata_queue.qsize() > 0:
                 self.got_torrent()
-            address, binhash, dtype = self.queue.get()
+            address, binhash, dtype = self.queue.get()  # block if queue is empty
             if binhash in self.visited:
                 continue
             if len(self.visited) > 100000:
@@ -367,19 +373,23 @@ class Master(Thread):
             y = self.dbcurr.fetchone()
             if y:
                 self.n_valid += 1
+                logging.debug(self.n_valid)
                 # 更新最近发现时间，请求数
                 self.dbcurr.execute('UPDATE search_hash SET last_seen=%s, requests=requests+1 WHERE info_hash=%s', (utcnow, info_hash))
             else:
                 if dtype == 'pt' and self.n_downloading_pt < MAX_QUEUE_PT:
+                    while self.n_downloading_pt >= MAX_QUEUE_PT:
+                        logging.debug('n_downloading_pt reaches MAX_QUEUE_PT')
+                        time.sleep(3)
                     t = threading.Thread(target=simMetadata.download_metadata, args=(address, binhash, self.metadata_queue))
                     t.setDaemon(True)
                     t.start()
                     self.n_downloading_pt += 1
-                elif dtype == 'lt' and self.n_downloading_lt < MAX_QUEUE_LT:
-                    t = threading.Thread(target=ltMetadata.download_metadata, args=(address, binhash, self.metadata_queue))
-                    t.setDaemon(True)
-                    t.start()
-                    self.n_downloading_lt += 1
+                #elif dtype == 'lt' and self.n_downloading_lt < MAX_QUEUE_LT:
+                #    t = threading.Thread(target=ltMetadata.download_metadata, args=(address, binhash, self.metadata_queue))
+                #    t.setDaemon(True)
+                #    t.start()
+                #    self.n_downloading_lt += 1
 
             if self.n_reqs >= 1000:
                 self.dbcurr.execute('INSERT INTO search_statusreport(date,new_hashes,total_requests, valid_requests)  VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE ' +
@@ -414,6 +424,7 @@ class Master(Thread):
             torrent = bdecode(data)
             if not torrent.get('name'):
                 return None
+            logging.debug(torrent.get('name'))
         except:
             return None
         try:
@@ -425,6 +436,7 @@ class Master(Thread):
             self.encoding = torrent['encoding']
         if torrent.get('announce'):
             info['announce'] = self.decode_utf8(torrent, 'announce')
+            logging.debug(info['announce'])
         if torrent.get('comment'):
             info['comment'] = self.decode_utf8(torrent, 'comment')[:200]
         if torrent.get('publisher-url'):
@@ -459,11 +471,13 @@ class Master(Thread):
 
 
     def log_announce(self, binhash, address=None):
+        logging.debug('pt {} {}'.format(address, binhash.encode('hex')))
         self.queue.put([address, binhash, 'pt'])
 
     def log_hash(self, binhash, address=None):
         if not lt:
             return
+        logging.debug('lt {} {}'.format(address, binhash.encode('hex')))
         if self.n_downloading_lt < MAX_QUEUE_LT:
             self.queue.put([address, binhash, 'lt'])
 
