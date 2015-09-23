@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import sys
 import socket
 import math
 from struct import pack, unpack
@@ -10,7 +11,7 @@ from hashlib import sha1
 
 from simdht_worker import entropy
 from bencode import bencode, bdecode
-
+import logging
 
 BT_PROTOCOL = "BitTorrent protocol"
 BT_MSG_ID = 20
@@ -110,6 +111,8 @@ def download_metadata(address, infohash, metadata_queue, timeout=5):
 
         # handshake error
         if not check_handshake(packet, infohash):
+            the_socket.close()
+            logging.debug('handshake error {}'.format(address))
             return
 
         # ext handshake
@@ -130,12 +133,14 @@ def download_metadata(address, infohash, metadata_queue, timeout=5):
         metadata = "".join(metadata)
         #print 'Fetched', bdecode(metadata)["name"], "size: ", len(metadata)
 
-    except socket.timeout:
-        pass
-    except Exception, e:
-        pass #print e
+    #except socket.timeout:
+    #    logging.debug('timeout {}'.format(address))
+    except:
+        t,v,_ = sys.exc_info()
+        logging.debug('address:{} infohash:{}'.format(address, infohash))
+        logging.debug('Except t:{} v:{}'.format(t,v))
 
     finally:
         the_socket.close()
         metadata_queue.put((infohash, address, metadata, 'pt', start_time))
-
+        logging.debug('metadata_queue put infohash:{}'.format(infohash))
