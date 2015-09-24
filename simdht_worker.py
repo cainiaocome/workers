@@ -390,7 +390,6 @@ class Master(Thread):
                             t,v,_ = sys.exc_info()
                             logging.debug('Exception t:{} v:{}'.format(t,v))
                         finally:
-                            logging.debug('starting new simMetadata.download_metadata {}'.format(threading.activeCount()))
                             self.n_downloading_pt += 1
                             break
             if self.n_reqs >= 1000:

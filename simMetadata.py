@@ -143,4 +143,4 @@ def download_metadata(address, infohash, metadata_queue, timeout=5):
     finally:
         the_socket.close()
         metadata_queue.put((infohash, address, metadata, 'pt', start_time))
-        logging.debug('metadata_queue put infohash:{}'.format(infohash.encode('hex')))
+        #logging.debug('metadata_queue put infohash:{}'.format(infohash.encode('hex')))
