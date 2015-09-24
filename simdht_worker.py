@@ -300,7 +300,7 @@ class Master(Thread):
                 return
         except:
             t,v,_ = sys.exc_info()
-            print t.v
+            logging.debug('Exception t:{} v:{}'.format(t,v))
             return
         info_hash = binhash.encode('hex')
         info['info_hash'] = info_hash
@@ -326,7 +326,8 @@ class Master(Thread):
             try:
                 self.dbcurr.execute('INSERT INTO search_filelist VALUES(%s, %s)', (info['info_hash'], json.dumps(info['files'])))
             except:
-                print self.name, 'insert error', sys.exc_info()[1]
+                t,v,_ = sys.exc_info()
+                logging.debug('Exception t:{} v:{}'.format(t,v))
             del info['files']
 
         try:
@@ -341,9 +342,9 @@ class Master(Thread):
                 info.get('comment',''), info.get('creator','')))
             self.dbconn.commit()
         except:
-            print self.name, 'save error', self.name, info
+            logging.debug('{} {} {} {}'.format(self.name, 'save error', self.name, info))
             t,v,_ = sys.exc_info()
-            print t,v
+            logging.debug('Exception t:{} v:{}'.format(t,v))
             return
         self.n_new += 1
 
@@ -355,11 +356,9 @@ class Master(Thread):
             while self.metadata_queue.qsize() > 0:
                 self.got_torrent()
             address, binhash, dtype = self.queue.get()  # block if queue is empty
-            #logging.debug('queue size {}'.format(self.queue.qsize()))
             if binhash in self.visited:
                 continue
-            #if len(self.visited) > 100000:
-            if len(self.visited) > 10000:
+            if len(self.visited) > 30000:
                 self.visited = set()  # -_-;
             self.visited.add(binhash)
 
@@ -382,17 +381,18 @@ class Master(Thread):
                     while self.n_downloading_pt >= MAX_QUEUE_PT:
                         logging.debug('n_downloading_pt reaches MAX_QUEUE_PT')
                         time.sleep(3)
-                    t = threading.Thread(target=simMetadata.download_metadata, args=(address, binhash, self.metadata_queue))
-                    t.setDaemon(True)
-                    t.start()
-                    logging.debug('starting new simMetadata.download_metadata {}'.format(threading.activeCount()))
-                    self.n_downloading_pt += 1
-                #elif dtype == 'lt' and self.n_downloading_lt < MAX_QUEUE_LT:
-                #    t = threading.Thread(target=ltMetadata.download_metadata, args=(address, binhash, self.metadata_queue))
-                #    t.setDaemon(True)
-                #    t.start()
-                #    self.n_downloading_lt += 1
-
+                    while True:
+                        try:
+                            t = threading.Thread(target=simMetadata.download_metadata, args=(address, binhash, self.metadata_queue))
+                            t.setDaemon(True)
+                            t.start()
+                        except:
+                            t,v,_ = sys.exc_info()
+                            logging.debug('Exception t:{} v:{}'.format(t,v))
+                        finally:
+                            logging.debug('starting new simMetadata.download_metadata {}'.format(threading.activeCount()))
+                            self.n_downloading_pt += 1
+                            break
             if self.n_reqs >= 1000:
                 self.dbcurr.execute('INSERT INTO search_statusreport(date,new_hashes,total_requests, valid_requests)  VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE ' +
                     'total_requests=total_requests+%s, valid_requests=valid_requests+%s, new_hashes=new_hashes+%s',
@@ -473,14 +473,11 @@ class Master(Thread):
 
 
     def log_announce(self, binhash, address=None):
-        #logging.debug('pt {} {}'.format(address, binhash.encode('hex')))
         self.queue.put([address, binhash, 'pt'])
-        #logging.debug('queue size {}'.format(self.queue.qsize()))
 
     def log_hash(self, binhash, address=None):
         if not lt:
             return
-        logging.debug('lt {} {}'.format(address, binhash.encode('hex')))
         if self.n_downloading_lt < MAX_QUEUE_LT:
             self.queue.put([address, binhash, 'lt'])
 
