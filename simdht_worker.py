@@ -332,10 +332,12 @@ class Master(Thread):
 
         try:
             try:
-                print '\n', 'Saved', info['info_hash'], dtype, info['name'], (time.time()-start_time), 's', address[0],
+                log_s = ' '.join( ('\n', 'Saved', info['info_hash'], dtype, info['name'], (time.time()-start_time), 's', address[0]) )
+                logging.debug(log_s)
             except:
-                print '\n', 'Saved', info['info_hash'],
-            ret = self.dbcurr.execute('INSERT INTO search_hash(info_hash,category,data_hash,name,extension,classified,source_ip,tagged,' + 
+                log_s = ' '.join( ('\n', 'Saved', info['info_hash']) )
+                logging.debug(log_s)
+            ret = self.dbcurr.execute('INSERT INTO rt_search_hash(info_hash,category,data_hash,name,extension,classified,source_ip,tagged,' + 
                 'length,create_time,last_seen,requests,comment,creator) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
                 (info['info_hash'], info['category'], info['data_hash'], info['name'], info['extension'], info['classified'],
                 info['source_ip'], info['tagged'], info['length'], info['create_time'], info['last_seen'], info['requests'],

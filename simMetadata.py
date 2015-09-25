@@ -112,7 +112,7 @@ def download_metadata(address, infohash, metadata_queue, timeout=5):
         # handshake error
         if not check_handshake(packet, infohash):
             the_socket.close()
-            logging.debug('handshake error {}'.format(address))
+            #logging.debug('handshake error {}'.format(address))
             return
 
         # ext handshake
@@ -133,11 +133,8 @@ def download_metadata(address, infohash, metadata_queue, timeout=5):
         metadata = "".join(metadata)
         #print 'Fetched', bdecode(metadata)["name"], "size: ", len(metadata)
 
-    #except socket.timeout:
-    #    logging.debug('timeout {}'.format(address))
     except:
         t,v,_ = sys.exc_info()
-        #logging.debug('address:{} infohash:{}'.format(address, infohash.encode('hex')))
         #logging.debug('Except t:{} v:{}'.format(t,v))
 
     finally:
