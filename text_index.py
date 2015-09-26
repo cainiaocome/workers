@@ -4,6 +4,7 @@
 import os
 import sys
 import time
+import traceback
 from whoosh.index import create_in, open_dir
 from whoosh.query import Term
 from whoosh.fields import *
@@ -20,7 +21,9 @@ analyzer=ChineseAnalyzer()
 schema = Schema(id=NUMERIC(stored=True), name=TEXT(stored=True, analyzer=analyzer))
 if not os.path.exists("/var/indexdir"):
     os.mkdir("/var/indexdir")
-ix = create_in("/var/indexdir", schema)
+    ix = create_in("/var/indexdir", schema)
+else:
+    ix = open_dir("/var/indexdir")
 dbconn = mdb.connect(DB_HOST, DB_USER, DB_PASS, 'ssbc', charset='utf8')
 dbconn.autocommit(False)
 dbcurr = dbconn.cursor(DictCursor)
@@ -34,10 +37,10 @@ while True:
         for rt_row in rt_rows:
 
             # check whether we have met this info_hash
-            sql = 'select id from search_hash where info_hash=%s'.format(rt_row['info_hash'])
+            sql = 'select id from search_hash where info_hash="{}"'.format(rt_row['info_hash'])
             row_number = dbcurr.execute(sql)
             if row_number > 0:
-                sql = 'delete from rt_search_hash where info_hash=%s'.format(rt_row['info_hash'])
+                sql = 'delete from rt_search_hash where info_hash="{}"'.format(rt_row['info_hash'])
                 dbcurr.execute(sql)
                 continue
 
@@ -48,7 +51,7 @@ while True:
             dbcurr.execute(sql, rt_row.values())
 
             # we have to retrive it back...
-            sql = 'select id from search_hash where info_hash=%s'.format(rt_row['info_hash'])
+            sql = 'select id from search_hash where info_hash="{}"'.format(rt_row['info_hash'])
             row_number = dbcurr.execute(sql)
             rt_row['id'] = dbcurr.fetchone()['id']
             writer = ix.writer()
@@ -56,13 +59,14 @@ while True:
             writer.commit()
 
             # delete this row from rt_search_hash
-            sql = 'delete from rt_search_hash where info_hash=%s'.format(rt_row['info_hash']) 
+            sql = 'delete from rt_search_hash where info_hash="{}"'.format(rt_row['info_hash']) 
             dbcurr.execute(sql)
 
-            dbcurr.commit()
+            dbconn.commit()
     except:
         t,v,_ = sys.exc_info()
         print t,v
+        traceback.print_exc()
     time.sleep(10)
 
 #dbcurr.close()
