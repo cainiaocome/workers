@@ -11,6 +11,12 @@ case "$1" in
         pid_simdht_worker=`ps aux | grep simdht_worker | grep -v grep | awk '{print $2}'`
         kill 9 $pid_simdht_worker
     ;;
+    info)
+        pid_text_index=`ps aux | grep text_index | grep -v grep | awk '{print $2}'`
+        echo 'pid_text_index:' "$pid_text_index"
+        pid_simdht_worker=`ps aux | grep simdht_worker | grep -v grep | awk '{print $2}'`
+        echo 'pid_simdht_worker:' "$pid_simdht_worker"
+    ;;
     *)
         echo "Usage: ./start.sh start|stop"
     ;;

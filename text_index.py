@@ -16,22 +16,38 @@ from pymysql.cursors import DictCursor
 import pymysql as mdb
 from config import DB_HOST, DB_USER, DB_PASS
 
-#用中文分词器代替原先的正则表达式解释器。
-analyzer=ChineseAnalyzer()
-schema = Schema(id=NUMERIC(stored=True), name=TEXT(stored=True, analyzer=analyzer))
-if not os.path.exists("/var/indexdir"):
-    os.mkdir("/var/indexdir")
-    ix = create_in("/var/indexdir", schema)
-else:
-    ix = open_dir("/var/indexdir")
-dbconn = mdb.connect(DB_HOST, DB_USER, DB_PASS, 'ssbc', charset='utf8')
-dbconn.autocommit(False)
-dbcurr = dbconn.cursor(DictCursor)
-dbcurr.execute('SET NAMES utf8')
 
+def add_document(doc):
+    #用中文分词器代替原先的正则表达式解释器。
+    analyzer=ChineseAnalyzer()
+    schema = Schema(id=NUMERIC(stored=True), name=TEXT(stored=True, analyzer=analyzer))
+    if not os.path.exists("/var/indexdir"):
+        os.mkdir("/var/indexdir")
+        ix = create_in("/var/indexdir", schema)
+    else:
+        ix = open_dir("/var/indexdir")
+    writer = ix.writer()
+    writer.add_document(id=doc['id'], name=doc['name'])
+    writer.commit()
+    return
+    
 
 while True:
     try:
+        try:
+            # init db connection
+            dbconn = mdb.connect(DB_HOST, DB_USER, DB_PASS, 'ssbc', charset='utf8')
+            dbconn.autocommit(False)
+            dbcurr = dbconn.cursor(DictCursor)
+            dbcurr.execute('SET NAMES utf8')
+        except:
+            t,v,_ = sys.exc_info()
+            print t,v
+            traceback.print_exc()
+            time.sleep(60)
+            continue
+
+        # fetch all from rt_search_hash
         dbcurr.execute('select * from rt_search_hash')
         rt_rows = dbcurr.fetchall()
         for rt_row in rt_rows:
@@ -54,9 +70,7 @@ while True:
             sql = 'select id from search_hash where info_hash="{}"'.format(rt_row['info_hash'])
             row_number = dbcurr.execute(sql)
             rt_row['id'] = dbcurr.fetchone()['id']
-            writer = ix.writer()
-            writer.add_document(id=rt_row['id'], name=rt_row['name'])
-            writer.commit()
+            add_document(doc=rt_row)
 
             # delete this row from rt_search_hash
             sql = 'delete from rt_search_hash where info_hash="{}"'.format(rt_row['info_hash']) 
@@ -67,7 +81,7 @@ while True:
         t,v,_ = sys.exc_info()
         print t,v
         traceback.print_exc()
+    # close db connection and sleep 10 seconds, then continue
+    dbcurr.close()
+    dbconn.close()
     time.sleep(10)
-
-#dbcurr.close()
-#dbconn.close()
